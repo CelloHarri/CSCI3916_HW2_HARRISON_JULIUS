@@ -4,6 +4,7 @@ File: Server.js
 Description: Web API scaffolding for Movie API
  */
 
+require('dotenv').config();
 var express = require('express');
 var http = require('http');
 var bodyParser = require('body-parser');
@@ -43,7 +44,7 @@ function getJSONObjectForMovieRequirement(req) {
 
 router.post('/signup', (req, res) => {
     if (!req.body.username || !req.body.password) {
-        res.json({success: false, msg: 'Please include both username and password to signup.'})
+        res.json({ success: false, msg: 'Please include both username and password to signup.' })
     } else {
         var newUser = {
             username: req.body.username,
@@ -51,7 +52,7 @@ router.post('/signup', (req, res) => {
         };
 
         db.save(newUser); //no duplicate checking
-        res.json({success: true, msg: 'Successfully created new user.'})
+        res.json({ success: true, msg: 'Successfully created new user.' })
     }
 });
 
@@ -59,18 +60,77 @@ router.post('/signin', (req, res) => {
     var user = db.findOne(req.body.username);
 
     if (!user) {
-        res.status(401).send({success: false, msg: 'Authentication failed. User not found.'});
+        res.status(401).send({ success: false, msg: 'Authentication failed. User not found.' });
     } else {
         if (req.body.password == user.password) {
             var userToken = { id: user.id, username: user.username };
             var token = jwt.sign(userToken, process.env.SECRET_KEY);
-            res.json ({success: true, token: 'JWT ' + token});
+            res.json({ success: true, token: 'JWT ' + token });
         }
         else {
-            res.status(401).send({success: false, msg: 'Authentication failed.'});
+            res.status(401).send({ success: false, msg: 'Authentication failed.' });
         }
     }
 });
+
+router.route('/movies')
+    .get((req, res) => { //Retreieve Data
+        var o = getJSONObjectForMovieRequirement(req);
+        o.status = 200;
+        o.message = "GET movies";
+        if (Object.keys(req.query).length == 0) {
+            o.query = "No Query Parameters";
+        }
+        else { o.query = req.query; }
+        o.env = process.env.UNIQUE_KEY;
+        delete o.key;
+        delete o.body;
+        res.json(o);
+    })
+    .post((req, res) => { //Create New Data
+        var o = getJSONObjectForMovieRequirement(req);
+        o.status = 200;
+        o.message = "movie saved";
+        if (Object.keys(req.query).length == 0) {
+            o.query = "No Query Parameters";
+        }
+        else { o.query = req.query; }
+        o.env = process.env.UNIQUE_KEY;
+        delete o.key;
+        delete o.body;
+        res.json(o);
+    })
+    .put(authJwtController.isAuthenticated, (req, res) => { //Write Over Old Data
+        //authController Checks automatically if I am Authenticated
+        var o = getJSONObjectForMovieRequirement(req);
+        o.status = 200;
+        o.message = "movie updated";
+        if (Object.keys(req.query).length == 0) {
+            o.query = "No Query Parameters";
+        }
+        else { o.query = req.query; }
+        o.env = process.env.UNIQUE_KEY;
+        delete o.key;
+        delete o.body;
+        res.json(o);
+    })
+    .delete(authController.isAuthenticated, (req, res) => { //Remove Data
+        //authController Checks automatically if I am Authenticated
+        var o = getJSONObjectForMovieRequirement(req);
+        o.status = 200;
+        o.message = "movie deleted";
+        if (Object.keys(req.query).length == 0) {
+            o.query = "No Query Parameters";
+        }
+        else { o.query = req.query; }
+        o.env = process.env.UNIQUE_KEY;
+        delete o.key;
+        delete o.body;
+        res.json(o);
+    })
+    .all((req, res) => { //If Other HTTP Requests are used, return an error
+        res.status(405).send({ message: "HTTP Request Not Supported." });
+    })
 
 router.route('/testcollection')
     .delete(authController.isAuthenticated, (req, res) => {
@@ -93,7 +153,7 @@ router.route('/testcollection')
         res.json(o);
     }
     );
-    
+
 app.use('/', router);
 app.listen(process.env.PORT || 8080);
 module.exports = app; // for testing only
